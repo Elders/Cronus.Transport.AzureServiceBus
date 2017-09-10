@@ -10,20 +10,21 @@ namespace Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusPipeline : IPipeline, IDisposable
     {
-        private readonly string ConnectionString;
-        private readonly ISerializer serializer;
-        readonly protected string name;
+        private readonly string _connectionString;
+        private readonly ISerializer _serializer;
+        private readonly string _name;
+        private TopicClient _client = null;
 
-        private TopicClient client = null;
+        public string Name { get { return _name; } }
 
         public AzureServiceBusPipeline(
             ISerializer serializer,
-            string pipelineName,
+            string name,
             Config.IAzureServiceBusTransportSettings settings)
         {
-            this.serializer = serializer;
-            this.name = pipelineName;
-            this.ConnectionString = settings.ConnectionString;
+            this._serializer = serializer;
+            this._name = name;
+            this._connectionString = settings.ConnectionString;
         }
 
         public void Bind(IEndpoint endpoint)
@@ -31,13 +32,11 @@ namespace Cronus.Transport.AzureServiceBus
             (endpoint as AzureServiceBusEndpoint)?.Bind(this);
         }
 
-        public string Name { get { return name; } }
-
         public void Declare()
         {
-            var namespaceManager = NamespaceManager.CreateFromConnectionString(this.ConnectionString);
+            var namespaceManager = NamespaceManager.CreateFromConnectionString(this._connectionString);
 
-            namespaceManager.TryCreateTopic(new TopicDescription(this.name)
+            namespaceManager.TryCreateTopic(new TopicDescription(this.Name)
             {
                 //RequiresDuplicateDetection = true,
                 //DuplicateDetectionHistoryTimeWindow = TimeSpan.FromMinutes(10),
@@ -46,12 +45,12 @@ namespace Cronus.Transport.AzureServiceBus
 
         public void Push(CronusMessage message)
         {
-            if (client == null)
+            if (_client == null)
             {
-                client = TopicClient.CreateFromConnectionString(this.ConnectionString, this.name);
+                _client = TopicClient.CreateFromConnectionString(this._connectionString, this.Name);
             }
 
-            var body = serializer.SerializeToBytes(message);
+            var body = _serializer.SerializeToBytes(message);
 
             using (var brokeredMessage = new BrokeredMessage(body))
             {
@@ -65,7 +64,7 @@ namespace Cronus.Transport.AzureServiceBus
                 brokeredMessage.SessionId = message.CorelationId;
                 brokeredMessage.ReplyToSessionId = message.CorelationId;
                 brokeredMessage.ContentType = "application/octet-stream";
-                client.Send(brokeredMessage);
+                _client.Send(brokeredMessage);
             }
         }
 
@@ -76,10 +75,7 @@ namespace Cronus.Transport.AzureServiceBus
 
         public void Dispose()
         {
-            if (ReferenceEquals(null, client) == false)
-            {
-                client.Close();
-            }
+            _client?.Close();
         }
     }
 }

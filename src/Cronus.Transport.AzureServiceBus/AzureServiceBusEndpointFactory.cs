@@ -7,23 +7,23 @@ namespace Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusEndpointFactory : IEndpointFactory
     {
-        private readonly ISerializer serializer;
-        private readonly IEndpointNameConvention endpointNameConvention;
-        private readonly Config.IAzureServiceBusTransportSettings settings;
+        private readonly ISerializer _serializer;
+        private readonly IEndpointNameConvention _endpointNameConvention;
+        private readonly Config.IAzureServiceBusTransportSettings _settings;
 
         public AzureServiceBusEndpointFactory(ISerializer serializer, Config.IAzureServiceBusTransportSettings settings)
         {
-            this.serializer = serializer;
-            this.endpointNameConvention = settings.EndpointNameConvention;
-            this.settings = settings;
+            this._serializer = serializer;
+            this._endpointNameConvention = settings.EndpointNameConvention;
+            this._settings = settings;
         }
 
         public IEndpoint CreateEndpoint(EndpointDefinition definition)
         {
-            var pipeline = new AzureServiceBusPipeline(serializer, definition.PipelineName, this.settings);
+            var pipeline = new AzureServiceBusPipeline(_serializer, definition.PipelineName, this._settings);
             pipeline.Declare();
 
-            var endpoint = new AzureServiceBusEndpoint(serializer, definition, settings);
+            var endpoint = new AzureServiceBusEndpoint(_serializer, definition, _settings);
             endpoint.Bind(pipeline);
 
             return endpoint;
@@ -37,7 +37,7 @@ namespace Cronus.Transport.AzureServiceBus
 
         public IEnumerable<EndpointDefinition> GetEndpointDefinition(IEndpointConsumer consumer, SubscriptionMiddleware subscriptionMiddleware)
         {
-            return endpointNameConvention.GetEndpointDefinition(consumer, subscriptionMiddleware);
+            return _endpointNameConvention.GetEndpointDefinition(consumer, subscriptionMiddleware);
         }
     }
 }

@@ -14,67 +14,70 @@ namespace Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusEndpoint : IEndpoint, IDisposable
     {
-        private readonly ISerializer serializer;
-        private readonly string ConnectionString;
+        private readonly ISerializer _serializer;
+        private readonly string _connectionString;
+        private readonly int _numberOfHandlingThreads;
+        private readonly ICollection<string> _watchMessageTypes;
 
         public AzureServiceBusEndpoint(
             ISerializer serializer,
             EndpointDefinition endpointDefinition,
             Config.IAzureServiceBusTransportSettings settings)
         {
-            this.serializer = serializer;
+            this._serializer = serializer;
             this.Name = endpointDefinition.EndpointName;
-            this.WatchMessageTypes = new List<string>(endpointDefinition.WatchMessageTypes);
-            this.ConnectionString = settings.ConnectionString;
-            this.clients = new List<SubscriptionClient>();
-            this.pipelines = new ConcurrentBag<string>();
+            this._watchMessageTypes = new List<string>(endpointDefinition.WatchMessageTypes);
+            this._connectionString = settings.ConnectionString;
+            this._numberOfHandlingThreads = settings.NumberOfHandlingThreads;
         }
+        public string Name { get; private set; }
 
-        private bool Started = false;
-        private bool Stopping = false;
-        private Action<CronusMessage> onMessage;
-        private ConcurrentBag<string> pipelines;
-        private List<SubscriptionClient> clients;
-        private ConcurrentDictionary<object, object> processedMessages = new ConcurrentDictionary<object, object>();
+        private bool _started = false;
+        private bool _stopping = false;
+        private Action<CronusMessage> _onMessageHandler;
+        private readonly ConcurrentBag<string> _pipelines = new ConcurrentBag<string>();
+        private readonly List<SubscriptionClient> _clients = new List<SubscriptionClient>();
+        private readonly ConcurrentDictionary<object, object> _processedMessages = new ConcurrentDictionary<object, object>();
 
         public void OnMessage(Action<CronusMessage> action)
         {
-            if (Started)
+            if (_started)
             {
-                throw new Exception("Cannot assign 'onMessage' handler when endpoint was started already");
+                throw new Exception("Cannot assign 'OnMessageHandler' handler when endpoint was started already");
             }
 
-            onMessage = action;
+            _onMessageHandler = action;
         }
 
         public void Start()
         {
-            if (Started)
+            if (_started)
             {
                 throw new Exception("Cannot start endpoint because it's already started");
             }
 
-            if (onMessage == null)
+            if (_onMessageHandler == null)
             {
-                throw new Exception("Cannot start endpoint because onMessage handler was not specified yet!");
+                throw new Exception("Cannot start endpoint because OnMessageHandler handler was not specified yet!");
             }
 
-            Started = true;
-            Stopping = false;
+            _started = true;
+            _stopping = false;
 
-            foreach (var pipeline in pipelines)
+            foreach (var pipeline in _pipelines)
             {
-                var client = SubscriptionClient.CreateFromConnectionString(this.ConnectionString, pipeline, this.Name);
+                var client = SubscriptionClient.CreateFromConnectionString(this._connectionString, pipeline, this.Name);
+                _clients.Add(client);
 
                 var options = new OnMessageOptions()
                 {
                     AutoComplete = false,
-                    MaxConcurrentCalls = 2 //for now use only 1 thread per subsciber
+                    MaxConcurrentCalls = this._numberOfHandlingThreads
                 };
 
                 client.OnMessage(msg =>
                 {
-                    if (client.IsClosed || Stopping)
+                    if (client.IsClosed || _stopping)
                     {
                         return;
                     }
@@ -83,9 +86,9 @@ namespace Cronus.Transport.AzureServiceBus
                     {
                         TrackMessage(msg);
 
-                        var cronusMessage = (CronusMessage)serializer.DeserializeFromBytes(msg.GetBody<byte[]>());
+                        var cronusMessage = (CronusMessage)_serializer.DeserializeFromBytes(msg.GetBody<byte[]>());
 
-                        onMessage(cronusMessage);
+                        _onMessageHandler(cronusMessage);
 
                         msg.Complete();
                     }
@@ -100,7 +103,7 @@ namespace Cronus.Transport.AzureServiceBus
                         {
                             //msg.Abandon()
                             //problem with msg.Abandon() - it will make this message available right away for reprocessing
-                            //which might run in same issue. in order to avoid it, we need to do wait till message lock times out
+                            //which might run in same issue. in order to avoid it, we need to wait till message lock times out
                         }
                     }
                     finally
@@ -108,47 +111,48 @@ namespace Cronus.Transport.AzureServiceBus
                         LooseMessage(msg);
                     }
                 }, options);
+
             }
         }
 
         private void TrackMessage(object message)
         {
-            processedMessages.TryAdd(message, message);
+            _processedMessages.TryAdd(message, message);
         }
 
         private void LooseMessage(object message)
         {
             object result;
-            processedMessages.TryRemove(message, out result);
+            _processedMessages.TryRemove(message, out result);
         }
 
         public void Stop()
         {
-            if (!Started || Stopping)
+            if (!_started || _stopping)
             {
                 throw new Exception("Cannot stop endpoint because it was not started!");
             }
 
-            Stopping = true;
+            _stopping = true;
 
-            Parallel.ForEach(clients, x => x.Close());
+            Parallel.ForEach(_clients, x => x.Close());
 
             var timeout = DateTime.UtcNow.AddMinutes(5);
-            while (processedMessages.Count > 0 && DateTime.UtcNow < timeout)
+            while (_processedMessages.Count > 0 && DateTime.UtcNow < timeout)
             {
                 Thread.Sleep(300);
             }
 
-            Started = false;
+            _started = false;
 
-            clients.Clear();
+            _clients.Clear();
         }
 
         public void Bind(IPipeline pipeline)
         {
-            pipelines.Add(pipeline.Name);
+            _pipelines.Add(pipeline.Name);
 
-            var namespaceManager = NamespaceManager.CreateFromConnectionString(this.ConnectionString);
+            var namespaceManager = NamespaceManager.CreateFromConnectionString(this._connectionString);
             namespaceManager.TryCreateSubscription(new SubscriptionDescription(pipeline.Name, this.Name)
             {
                 LockDuration = TimeSpan.FromSeconds(30), //default is 1 minute
@@ -159,10 +163,10 @@ namespace Cronus.Transport.AzureServiceBus
             var rules = namespaceManager.GetRules(pipeline.Name, this.Name).ToList();
             var rulesHash = new HashSet<string>(rules.Select(x => x.Name));
 
-            var watchMessageTypesHash = new HashSet<string>(this.WatchMessageTypes);
-            var client = SubscriptionClient.CreateFromConnectionString(this.ConnectionString, pipeline.Name, this.Name);
+            var watchMessageTypesHash = new HashSet<string>(this._watchMessageTypes);
+            var client = SubscriptionClient.CreateFromConnectionString(this._connectionString, pipeline.Name, this.Name);
 
-            foreach (var messageType in this.WatchMessageTypes.Where(x => !rulesHash.Contains(x)).ToList())
+            foreach (var messageType in this._watchMessageTypes.Where(x => !rulesHash.Contains(x)).ToList())
             {
                 client.AddRule(new RuleDescription()
                 {
@@ -183,8 +187,6 @@ namespace Cronus.Transport.AzureServiceBus
             client.Close();
         }
 
-        public string Name { get; private set; }
-        public ICollection<string> WatchMessageTypes { get; set; }
 
         public bool Equals(IEndpoint other)
         {
@@ -193,7 +195,7 @@ namespace Cronus.Transport.AzureServiceBus
 
         public void Dispose()
         {
-            if (this.Started)
+            if (this._started)
             {
                 this.Stop();
             }
