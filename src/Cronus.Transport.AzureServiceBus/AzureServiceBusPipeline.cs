@@ -37,7 +37,11 @@ namespace Cronus.Transport.AzureServiceBus
         {
             var namespaceManager = NamespaceManager.CreateFromConnectionString(this.ConnectionString);
 
-            namespaceManager.TryCreateTopic(this.name);
+            namespaceManager.TryCreateTopic(new TopicDescription(this.name)
+            {
+                //RequiresDuplicateDetection = true,
+                //DuplicateDetectionHistoryTimeWindow = TimeSpan.FromMinutes(10),
+            });
         }
 
         public void Push(CronusMessage message)
@@ -56,6 +60,7 @@ namespace Cronus.Transport.AzureServiceBus
                 {
                     brokeredMessage.ScheduledEnqueueTimeUtc = DateTime.UtcNow.AddMilliseconds(delayInMs);
                 }
+                brokeredMessage.MessageId = message.MessageId;
                 brokeredMessage.CorrelationId = message.Payload.GetType().GetContractId();
                 brokeredMessage.SessionId = message.CorelationId;
                 brokeredMessage.ReplyToSessionId = message.CorelationId;

@@ -8,16 +8,16 @@ namespace Cronus.Transport.AzureServiceBus
 {
     public static class NamespaceManagerExtensions
     {
-        public static void TryCreateTopic(this NamespaceManager self, string topic)
+        public static void TryCreateTopic(this NamespaceManager self, TopicDescription topic)
         {
             self.TryCreateTopic(topic, 3, TimeSpan.FromSeconds(3));
         }
 
-        public static void TryCreateTopic(this NamespaceManager self, string topic, int retries, TimeSpan retryDelay)
+        public static void TryCreateTopic(this NamespaceManager self, TopicDescription topic, int retries, TimeSpan retryDelay)
         {
             var createTopicAction = new Action(() =>
             {
-                if (self.TopicExists(topic))
+                if (self.TopicExists(topic.Path))
                 {
                     return;
                 }

@@ -69,7 +69,7 @@ namespace Cronus.Transport.AzureServiceBus
                 var options = new OnMessageOptions()
                 {
                     AutoComplete = false,
-                    MaxConcurrentCalls = 1 //for now use only 1 thread per subsciber
+                    MaxConcurrentCalls = 2 //for now use only 1 thread per subsciber
                 };
 
                 client.OnMessage(msg =>
@@ -98,7 +98,9 @@ namespace Cronus.Transport.AzureServiceBus
                         }
                         else
                         {
-                            msg.Abandon();
+                            //msg.Abandon()
+                            //problem with msg.Abandon() - it will make this message available right away for reprocessing
+                            //which might run in same issue. in order to avoid it, we need to do wait till message lock times out
                         }
                     }
                     finally
@@ -147,13 +149,11 @@ namespace Cronus.Transport.AzureServiceBus
             pipelines.Add(pipeline.Name);
 
             var namespaceManager = NamespaceManager.CreateFromConnectionString(this.ConnectionString);
-            if (!namespaceManager.SubscriptionExists(pipeline.Name, this.Name))
+            namespaceManager.TryCreateSubscription(new SubscriptionDescription(pipeline.Name, this.Name)
             {
-                var subscription = new SubscriptionDescription(pipeline.Name, this.Name);
-                //subscription.LockDuration = TimeSpan.FromSeconds(30); //default is 1 minute
-                //subscription.MaxDeliveryCount = 5; //default is 10
-                namespaceManager.TryCreateSubscription(subscription);
-            }
+                LockDuration = TimeSpan.FromSeconds(30), //default is 1 minute
+                MaxDeliveryCount = 5, //default is 10
+            });
 
             //add filters to subscribe only for needed messages
             var rules = namespaceManager.GetRules(pipeline.Name, this.Name).ToList();
