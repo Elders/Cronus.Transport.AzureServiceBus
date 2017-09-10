@@ -13,6 +13,7 @@ namespace Cronus.Transport.AzureServiceBus
 
         public AzureServiceBusEndpointFactory(ISerializer serializer, Config.IAzureServiceBusTransportSettings settings)
         {
+            this.serializer = serializer;
             this.endpointNameConvention = settings.EndpointNameConvention;
             this.settings = settings;
         }

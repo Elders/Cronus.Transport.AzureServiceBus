@@ -55,28 +55,28 @@ namespace Cronus.Transport.AzureServiceBus
             createTopicAction.InvokeAndRetryOnException<MessagingException>(retries, retryDelay);
         }
 
-        public static void TryCreateSubscription(this NamespaceManager self, string topic, string subscription)
+        public static void TryCreateSubscription(this NamespaceManager self, SubscriptionDescription subscription)
         {
-            self.TryCreateSubscription(topic, subscription, 3, TimeSpan.FromSeconds(3));
+            self.TryCreateSubscription(subscription, 3, TimeSpan.FromSeconds(3));
         }
 
-        public static void TryCreateSubscription(this NamespaceManager self, string topic, string subscription, int retries, TimeSpan retryDelay)
+        public static void TryCreateSubscription(this NamespaceManager self, SubscriptionDescription subscription, int retries, TimeSpan retryDelay)
         {
             var createSubscriptionAction = new Action(() =>
             {
-                if (self.SubscriptionExists(topic, subscription))
+                if (self.SubscriptionExists(subscription.TopicPath, subscription.Name))
                 {
                     return;
                 }
 
                 try
                 {
-                    self.CreateSubscription(topic, subscription);
+                    self.CreateSubscription(subscription);
                     return;
                 }
                 catch (MessagingEntityAlreadyExistsException)
                 {
-                    Debug.WriteLine("The subscription '{1}' for topic '{0}' already exists.", topic, subscription);
+                    Debug.WriteLine("The subscription '{1}' for topic '{0}' already exists.", subscription.TopicPath, subscription.Name);
                     return;
                 }
             });
@@ -85,7 +85,7 @@ namespace Cronus.Transport.AzureServiceBus
         }
     }
 
-        public static class ActionExtentions
+    public static class ActionExtentions
     {
         public static void InvokeAndRetryOnException<T>(this Action action, int retries, TimeSpan retryDelay)
             where T : Exception

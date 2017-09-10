@@ -1,6 +1,7 @@
 ﻿using Elders.Cronus.Pipeline;
 using System;
 using Elders.Cronus;
+using Elders.Cronus.DomainModeling;
 using Elders.Cronus.Serializer;
 using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
@@ -46,15 +47,20 @@ namespace Cronus.Transport.AzureServiceBus
                 client = TopicClient.CreateFromConnectionString(this.ConnectionString, this.name);
             }
 
-            using (var brokeredMessage = new BrokeredMessage(message))
+            var body = serializer.SerializeToBytes(message);
+
+            using (var brokeredMessage = new BrokeredMessage(body))
             {
                 var delayInMs = message.GetPublishDelay();
                 if (delayInMs > 0)
                 {
                     brokeredMessage.ScheduledEnqueueTimeUtc = DateTime.UtcNow.AddMilliseconds(delayInMs);
                 }
-
-                client.SendAsync(brokeredMessage);
+                brokeredMessage.CorrelationId = message.Payload.GetType().GetContractId();
+                brokeredMessage.SessionId = message.CorelationId;
+                brokeredMessage.ReplyToSessionId = message.CorelationId;
+                brokeredMessage.ContentType = "application/octet-stream";
+                client.Send(brokeredMessage);
             }
         }
 

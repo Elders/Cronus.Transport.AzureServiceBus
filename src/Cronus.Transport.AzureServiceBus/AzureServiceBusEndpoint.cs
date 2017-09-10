@@ -91,7 +91,7 @@ namespace Cronus.Transport.AzureServiceBus
                     }
                     catch (Exception ex)
                     {
-                        if (msg.DeliveryCount > 4)
+                        if (msg.DeliveryCount > 3)
                         {
                             //if retried multiple times & throwed exception, move to dead letter with reason
                             msg.DeadLetter("RuntimeException", $"{ex.GetFullErrorMessage()}\nStack Trace\n{ex.StackTrace}");
@@ -152,7 +152,7 @@ namespace Cronus.Transport.AzureServiceBus
                 var subscription = new SubscriptionDescription(pipeline.Name, this.Name);
                 //subscription.LockDuration = TimeSpan.FromSeconds(30); //default is 1 minute
                 //subscription.MaxDeliveryCount = 5; //default is 10
-                namespaceManager.CreateSubscription(subscription);
+                namespaceManager.TryCreateSubscription(subscription);
             }
 
             //add filters to subscribe only for needed messages
