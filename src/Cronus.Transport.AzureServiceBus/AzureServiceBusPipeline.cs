@@ -1,5 +1,7 @@
 ﻿using Elders.Cronus.Pipeline;
 using System;
+using Elders.Cronus;
+using Elders.Cronus.Serializer;
 using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
 
@@ -7,45 +9,52 @@ namespace Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusPipeline : IPipeline, IDisposable
     {
-        readonly Config.IAzureServiceBusTransportSettings settings;
-        readonly NamespaceManager nmanager;
+        private readonly string ConnectionString;
+        private readonly ISerializer serializer;
         readonly protected string name;
 
-        private TopicClient _topicClient = null;
-        private TopicClient getTopicClient()
-        {
-            lock (this)
-            {
-                if(ReferenceEquals(null, _topicClient) == true)
-                {
-                    _topicClient = TopicClient.CreateFromConnectionString(settings.ConnectionString, name);
-                }
+        private TopicClient client = null;
 
-                return _topicClient;
-            }
+        public AzureServiceBusPipeline(
+            ISerializer serializer,
+            string pipelineName,
+            Config.IAzureServiceBusTransportSettings settings)
+        {
+            this.serializer = serializer;
+            this.name = pipelineName;
+            this.ConnectionString = settings.ConnectionString;
         }
 
-        public AzureServiceBusPipeline(string pipelineName, Config.IAzureServiceBusTransportSettings settings, NamespaceManager nmanager)
+        public void Bind(IEndpoint endpoint)
         {
-            this.name = pipelineName;
-            this.settings = settings;
-            this.nmanager = nmanager;
-
-            nmanager.TryCreateTopic(pipelineName);
+            (endpoint as AzureServiceBusEndpoint)?.Bind(this);
         }
 
         public string Name { get { return name; } }
-        public void Bind(IEndpoint endpoint)
+
+        public void Declare()
         {
-            nmanager.TryCreateSubscription(this.name, endpoint.Name);
+            var namespaceManager = NamespaceManager.CreateFromConnectionString(this.ConnectionString);
+
+            namespaceManager.TryCreateTopic(this.name);
         }
 
-        public void Push(EndpointMessage message)
+        public void Push(CronusMessage message)
         {
+            if (client == null)
+            {
+                client = TopicClient.CreateFromConnectionString(this.ConnectionString, this.name);
+            }
+
             using (var brokeredMessage = new BrokeredMessage(message))
             {
-                brokeredMessage.ScheduledEnqueueTimeUtc = DateTime.UtcNow.AddMilliseconds(message.PublishDelayInMiliseconds);
-                getTopicClient().Send(brokeredMessage);
+                var delayInMs = message.GetPublishDelay();
+                if (delayInMs > 0)
+                {
+                    brokeredMessage.ScheduledEnqueueTimeUtc = DateTime.UtcNow.AddMilliseconds(delayInMs);
+                }
+
+                client.SendAsync(brokeredMessage);
             }
         }
 
@@ -56,9 +65,9 @@ namespace Cronus.Transport.AzureServiceBus
 
         public void Dispose()
         {
-            if (ReferenceEquals(null, _topicClient) == false)
+            if (ReferenceEquals(null, client) == false)
             {
-                this._topicClient.Close();
+                client.Close();
             }
         }
     }

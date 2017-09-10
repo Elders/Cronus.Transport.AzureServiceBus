@@ -55,18 +55,20 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Packages\LibLog.4.2\LibLog.cs" />
-    <Compile Include="AzureServiceBusEndpointAdapter.cs" />
     <Compile Include="AzureServiceBusEndpointFactory.cs" />
     <Compile Include="AzureServiceBusTransport.cs" />
     <Compile Include="AzureServiceBusPipelineFactory.cs" />
     <Compile Include="AzureServiceBusPipeline.cs" />
     <Compile Include="AzureServiceBusEndpoint.cs" />
     <Compile Include="Config\AzureServiceBusTransportSettings.cs" />
+    <Compile Include="ExceptionExtensions.cs" />
     <Compile Include="NamespaceManagerExtensions.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

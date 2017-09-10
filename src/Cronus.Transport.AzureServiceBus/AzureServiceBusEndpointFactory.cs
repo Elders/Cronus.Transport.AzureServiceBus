@@ -1,30 +1,29 @@
 ﻿using Elders.Cronus.Pipeline;
-using System;
 using System.Collections.Generic;
 using Elders.Cronus.MessageProcessing;
-using Microsoft.ServiceBus;
+using Elders.Cronus.Serializer;
 
 namespace Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusEndpointFactory : IEndpointFactory
     {
-        private readonly NamespaceManager namespaceManager;
+        private readonly ISerializer serializer;
         private readonly IEndpointNameConvention endpointNameConvention;
         private readonly Config.IAzureServiceBusTransportSettings settings;
 
-        public AzureServiceBusEndpointFactory(NamespaceManager nmanager, Config.IAzureServiceBusTransportSettings settings)
+        public AzureServiceBusEndpointFactory(ISerializer serializer, Config.IAzureServiceBusTransportSettings settings)
         {
-            this.namespaceManager = nmanager;
             this.endpointNameConvention = settings.EndpointNameConvention;
             this.settings = settings;
         }
 
         public IEndpoint CreateEndpoint(EndpointDefinition definition)
         {
-            var endpoint = new AzureServiceBusEndpoint(definition, settings, namespaceManager);
+            var pipeline = new AzureServiceBusPipeline(serializer, definition.PipelineName, this.settings);
+            pipeline.Declare();
 
-            var pipeline = new AzureServiceBusPipeline(definition.PipelineName, this.settings, namespaceManager);
-            pipeline.Bind(endpoint);
+            var endpoint = new AzureServiceBusEndpoint(serializer, definition, settings);
+            endpoint.Bind(pipeline);
 
             return endpoint;
         }

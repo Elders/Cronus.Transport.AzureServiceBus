@@ -1,20 +1,20 @@
 ﻿using Elders.Cronus.Pipeline;
 using System;
-using Microsoft.ServiceBus;
 using System.Collections.Concurrent;
+using Elders.Cronus.Serializer;
 
 namespace Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusPipelineFactory : IPipelineFactory<IPipeline>
     {
-        private readonly NamespaceManager namespaceManager;
+        private readonly ISerializer serializer;
         private readonly IPipelineNameConvention nameConvention;
         private readonly Config.IAzureServiceBusTransportSettings settings;
         private ConcurrentDictionary<string, IPipeline> pipes = new ConcurrentDictionary<string, IPipeline>();
 
-        public AzureServiceBusPipelineFactory(NamespaceManager nmanager, Config.IAzureServiceBusTransportSettings settings)
+        public AzureServiceBusPipelineFactory(ISerializer serializer, Config.IAzureServiceBusTransportSettings settings)
         {
-            this.namespaceManager = nmanager;
+            this.serializer = serializer;
             this.nameConvention = settings.PipelineNameConvention;
             this.settings = settings;
         }
@@ -29,7 +29,7 @@ namespace Cronus.Transport.AzureServiceBus
         {
             return pipes.GetOrAdd(pipelineName, x =>
             {
-                var pipeline = new AzureServiceBusPipeline(pipelineName, settings, namespaceManager);
+                var pipeline = new AzureServiceBusPipeline(serializer, pipelineName, settings);
                 return pipeline;
             });
         }

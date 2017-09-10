@@ -3,6 +3,7 @@ using System;
 using Elders.Cronus.Pipeline;
 using Elders.Cronus.Pipeline.Transport;
 using Elders.Cronus.IocContainer;
+using Elders.Cronus.Serializer;
 
 namespace Cronus.Transport.AzureServiceBus.Config
 {
@@ -28,7 +29,11 @@ namespace Cronus.Transport.AzureServiceBus.Config
         public override void Build()
         {
             var builder = this as ISettingsBuilder;
-            builder.Container.RegisterSingleton<IPipelineTransport>(() => new AzureServiceBusTransport(this as IAzureServiceBusTransportSettings), builder.Name);
+            builder.Container.RegisterSingleton<IPipelineTransport>(() =>
+            {
+                var serializer = builder.Container.Resolve<ISerializer>();
+                return new AzureServiceBusTransport(serializer, this as IAzureServiceBusTransportSettings);
+            }, builder.Name);
         }
     }
 
