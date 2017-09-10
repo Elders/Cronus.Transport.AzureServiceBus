@@ -5,6 +5,14 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cronus.Transport.AzureServiceBus", "Cronus.Transport.AzureServiceBus\Cronus.Transport.AzureServiceBus.csproj", "{0AD413C9-3684-4B37-BCF5-F867F45B25EA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{3DBBCBD9-7FF5-48E5-979D-C56CEE45B355}"
+	ProjectSection(SolutionItems) = preProject
+		..\build.cmd = ..\build.cmd
+		..\RELEASE_NOTES.md = ..\RELEASE_NOTES.md
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cronus.Transport.AzureServiceBus.TestCLI", "Cronus.Transport.AzureServiceBus.TestCLI\Cronus.Transport.AzureServiceBus.TestCLI.csproj", "{7130ABF7-7CE3-4B74-954D-2394E9298647}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +23,10 @@ Global
 		{0AD413C9-3684-4B37-BCF5-F867F45B25EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0AD413C9-3684-4B37-BCF5-F867F45B25EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0AD413C9-3684-4B37-BCF5-F867F45B25EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7130ABF7-7CE3-4B74-954D-2394E9298647}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7130ABF7-7CE3-4B74-954D-2394E9298647}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7130ABF7-7CE3-4B74-954D-2394E9298647}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7130ABF7-7CE3-4B74-954D-2394E9298647}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -4,15 +4,17 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0AD413C9-3684-4B37-BCF5-F867F45B25EA}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{7130ABF7-7CE3-4B74-954D-2394E9298647}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cronus.Transport.AzureServiceBus</RootNamespace>
-    <AssemblyName>Cronus.Transport.AzureServiceBus</AssemblyName>
+    <RootNamespace>Cronus.Transport.AzureServiceBus.TestCLI</RootNamespace>
+    <AssemblyName>Cronus.Transport.AzureServiceBus.TestCLI</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +24,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -48,25 +51,29 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Packages\LibLog.4.2\LibLog.cs" />
-    <Compile Include="AzureServiceBusEndpointAdapter.cs" />
-    <Compile Include="AzureServiceBusEndpointFactory.cs" />
-    <Compile Include="AzureServiceBusTransport.cs" />
-    <Compile Include="AzureServiceBusPipelineFactory.cs" />
-    <Compile Include="AzureServiceBusPipeline.cs" />
-    <Compile Include="AzureServiceBusEndpoint.cs" />
-    <Compile Include="Config\AzureServiceBusTransportSettings.cs" />
-    <Compile Include="NamespaceManagerExtensions.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cronus.Transport.AzureServiceBus\Cronus.Transport.AzureServiceBus.csproj">
+      <Project>{0ad413c9-3684-4b37-bcf5-f867f45b25ea}</Project>
+      <Name>Cronus.Transport.AzureServiceBus</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
