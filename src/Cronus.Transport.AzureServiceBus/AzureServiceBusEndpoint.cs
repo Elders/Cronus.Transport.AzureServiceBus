@@ -19,6 +19,8 @@ namespace Cronus.Transport.AzureServiceBus
         private readonly int _numberOfHandlingThreads;
         private readonly ICollection<string> _watchMessageTypes;
 
+        public string Name { get; private set; }
+
         public AzureServiceBusEndpoint(
             ISerializer serializer,
             EndpointDefinition endpointDefinition,
@@ -30,7 +32,6 @@ namespace Cronus.Transport.AzureServiceBus
             this._connectionString = settings.ConnectionString;
             this._numberOfHandlingThreads = settings.NumberOfHandlingThreads;
         }
-        public string Name { get; private set; }
 
         private bool _started = false;
         private bool _stopping = false;

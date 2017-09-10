@@ -12,10 +12,9 @@ namespace Cronus.Transport.AzureServiceBus
     {
         private readonly string _connectionString;
         private readonly ISerializer _serializer;
-        private readonly string _name;
         private TopicClient _client = null;
 
-        public string Name { get { return _name; } }
+        public string Name { get; private set; }
 
         public AzureServiceBusPipeline(
             ISerializer serializer,
@@ -23,7 +22,7 @@ namespace Cronus.Transport.AzureServiceBus
             Config.IAzureServiceBusTransportSettings settings)
         {
             this._serializer = serializer;
-            this._name = name;
+            this.Name = name;
             this._connectionString = settings.ConnectionString;
         }
 
