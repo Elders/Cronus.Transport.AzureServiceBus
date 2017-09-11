@@ -99,7 +99,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                     }
                     catch (Exception ex)
                     {
-                        if (msg.DeliveryCount > 3)
+                        if (msg.DeliveryCount >= _maxDeliveryCount)
                         {
                             //if retried multiple times & throwed exception, move to dead letter with reason
                             msg.DeadLetter("RuntimeException", $"{ex.GetFullErrorMessage()}\nStack Trace\n{ex.StackTrace}");
