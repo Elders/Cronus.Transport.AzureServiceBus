@@ -5,7 +5,7 @@ using Elders.Cronus.Pipeline.Transport;
 using Elders.Cronus.IocContainer;
 using Elders.Cronus.Serializer;
 
-namespace Cronus.Transport.AzureServiceBus.Config
+namespace Elders.Cronus.Transport.AzureServiceBus.Config
 {
     public interface IAzureServiceBusTransportSettings : IPipelineTransportSettings
     {

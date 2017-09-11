@@ -4,7 +4,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-namespace Cronus.Transport.AzureServiceBus
+namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public static class NamespaceManagerExtensions
     {

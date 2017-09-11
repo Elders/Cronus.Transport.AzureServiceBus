@@ -7,8 +7,8 @@
     <ProjectGuid>{0AD413C9-3684-4B37-BCF5-F867F45B25EA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cronus.Transport.AzureServiceBus</RootNamespace>
-    <AssemblyName>Cronus.Transport.AzureServiceBus</AssemblyName>
+    <RootNamespace>Elders.Cronus.Transport.AzureServiceBus</RootNamespace>
+    <AssemblyName>Elders.Cronus.Transport.AzureServiceBus</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

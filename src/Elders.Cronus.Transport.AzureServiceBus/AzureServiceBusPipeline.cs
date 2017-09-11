@@ -6,7 +6,7 @@ using Elders.Cronus.Serializer;
 using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
 
-namespace Cronus.Transport.AzureServiceBus
+namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusPipeline : IPipeline, IDisposable
     {

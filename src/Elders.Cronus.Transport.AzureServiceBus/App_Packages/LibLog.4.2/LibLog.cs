@@ -46,9 +46,9 @@ using System.Diagnostics.CodeAnalysis;
 // If you copied this file manually, you need to change all "YourRootNameSpace" so not to clash with other libraries
 // that use LibLog
 #if LIBLOG_PROVIDERS_ONLY
-namespace Cronus.Transport.AzureServiceBus.LibLog
+namespace Elders.Cronus.Transport.AzureServiceBus.LibLog
 #else
-namespace Cronus.Transport.AzureServiceBus.Logging
+namespace Elders.Cronus.Transport.AzureServiceBus.Logging
 #endif
 {
     using System.Collections.Generic;
@@ -726,9 +726,9 @@ namespace Cronus.Transport.AzureServiceBus.Logging
 }
 
 #if LIBLOG_PROVIDERS_ONLY
-namespace Cronus.Transport.AzureServiceBus.LibLog.LogProviders
+namespace Elders.Cronus.Transport.AzureServiceBus.LibLog.LogProviders
 #else
-namespace Cronus.Transport.AzureServiceBus.Logging.LogProviders
+namespace Elders.Cronus.Transport.AzureServiceBus.Logging.LogProviders
 #endif
 {
     using System;

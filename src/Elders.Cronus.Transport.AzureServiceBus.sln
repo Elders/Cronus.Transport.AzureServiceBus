@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cronus.Transport.AzureServiceBus", "Cronus.Transport.AzureServiceBus\Cronus.Transport.AzureServiceBus.csproj", "{0AD413C9-3684-4B37-BCF5-F867F45B25EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elders.Cronus.Transport.AzureServiceBus", "Elders.Cronus.Transport.AzureServiceBus\Elders.Cronus.Transport.AzureServiceBus.csproj", "{0AD413C9-3684-4B37-BCF5-F867F45B25EA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{3DBBCBD9-7FF5-48E5-979D-C56CEE45B355}"
 	ProjectSection(SolutionItems) = preProject

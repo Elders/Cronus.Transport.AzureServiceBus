@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using Elders.Cronus;
 using Elders.Cronus.Serializer;
 
-namespace Cronus.Transport.AzureServiceBus
+namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusEndpoint : IEndpoint, IDisposable
     {

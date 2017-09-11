@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace Cronus.Transport.AzureServiceBus
+namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public static class ExceptionExtensions
     {

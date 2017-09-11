@@ -3,7 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using Elders.Cronus.Serializer;
 
-namespace Cronus.Transport.AzureServiceBus
+namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusPipelineFactory : IPipelineFactory<IPipeline>
     {

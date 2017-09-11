@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Elders.Cronus.MessageProcessing;
 using Elders.Cronus.Serializer;
 
-namespace Cronus.Transport.AzureServiceBus
+namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusEndpointFactory : IEndpointFactory
     {

@@ -2,7 +2,7 @@
 using Elders.Cronus.Pipeline.Transport;
 using Elders.Cronus.Serializer;
 
-namespace Cronus.Transport.AzureServiceBus
+namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public class AzureServiceBusTransport : IPipelineTransport
     {
