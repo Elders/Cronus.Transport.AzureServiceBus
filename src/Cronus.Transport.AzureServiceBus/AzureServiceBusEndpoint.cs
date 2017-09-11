@@ -17,6 +17,8 @@ namespace Cronus.Transport.AzureServiceBus
         private readonly ISerializer _serializer;
         private readonly string _connectionString;
         private readonly int _numberOfHandlingThreads;
+        private readonly TimeSpan _lockDuration;
+        private readonly int _maxDeliveryCount;
         private readonly ICollection<string> _watchMessageTypes;
 
         public string Name { get; private set; }
@@ -31,6 +33,8 @@ namespace Cronus.Transport.AzureServiceBus
             this._watchMessageTypes = new List<string>(endpointDefinition.WatchMessageTypes);
             this._connectionString = settings.ConnectionString;
             this._numberOfHandlingThreads = settings.NumberOfHandlingThreads;
+            this._lockDuration = settings.LockDuration;
+            this._maxDeliveryCount = settings.MaxDeliveryCount;
         }
 
         private bool _started = false;
@@ -154,11 +158,32 @@ namespace Cronus.Transport.AzureServiceBus
             _pipelines.Add(pipeline.Name);
 
             var namespaceManager = NamespaceManager.CreateFromConnectionString(this._connectionString);
-            namespaceManager.TryCreateSubscription(new SubscriptionDescription(pipeline.Name, this.Name)
+            var subscriptionDefinition = new SubscriptionDescription(pipeline.Name, this.Name)
             {
-                LockDuration = TimeSpan.FromSeconds(30), //default is 1 minute
-                MaxDeliveryCount = 5, //default is 10
-            });
+                MaxDeliveryCount = _maxDeliveryCount,
+                LockDuration = _lockDuration,
+            };
+            namespaceManager.TryCreateSubscription(subscriptionDefinition);
+
+            var subscription = namespaceManager.GetSubscription(pipeline.Name, this.Name);
+            var subscriptionUpdated = false;
+
+            if (subscriptionDefinition.LockDuration != subscription.LockDuration)
+            {
+                subscription.LockDuration = subscriptionDefinition.LockDuration;
+                subscriptionUpdated = true;
+            }
+
+            if (subscriptionDefinition.MaxDeliveryCount != subscription.MaxDeliveryCount)
+            {
+                subscription.MaxDeliveryCount = subscriptionDefinition.MaxDeliveryCount;
+                subscriptionUpdated = true;
+            }
+
+            if (subscriptionUpdated)
+            {
+                namespaceManager.UpdateSubscription(subscription);
+            }
 
             //add filters to subscribe only for needed messages
             var rules = namespaceManager.GetRules(pipeline.Name, this.Name).ToList();

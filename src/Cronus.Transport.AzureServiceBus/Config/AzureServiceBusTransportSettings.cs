@@ -11,6 +11,8 @@ namespace Cronus.Transport.AzureServiceBus.Config
     {
         int NumberOfHandlingThreads { get; set; }
         string ConnectionString { get; set; }
+        TimeSpan LockDuration { get; set; }
+        int MaxDeliveryCount { get; set; }
     }
 
 
@@ -21,11 +23,15 @@ namespace Cronus.Transport.AzureServiceBus.Config
             this
                 //no default configuration for service bus connection
                 .WithEndpointPerBoundedContext()
-                .SetNumberOfHandlingThreads(1);
+                .SetNumberOfHandlingThreads(1)
+                .SetLockDuration(TimeSpan.FromMinutes(1))
+                .SetMaxDeliveryCount(5);
         }
 
-        public int NumberOfHandlingThreads { get; set; }
+        int IAzureServiceBusTransportSettings.NumberOfHandlingThreads { get; set; }
         string IAzureServiceBusTransportSettings.ConnectionString { get; set; }
+        TimeSpan IAzureServiceBusTransportSettings.LockDuration { get; set; }
+        int IAzureServiceBusTransportSettings.MaxDeliveryCount { get; set; }
 
         IEndpointNameConvention IPipelineTransportSettings.EndpointNameConvention { get; set; }
 
@@ -66,6 +72,36 @@ namespace Cronus.Transport.AzureServiceBus.Config
             where T : IAzureServiceBusTransportSettings
         {
             self.NumberOfHandlingThreads = numberOfHandlingThreads;
+
+            return self;
+        }
+
+        public static T SetLockDuration<T>(
+            this T self,
+            TimeSpan lockDuration)
+            where T : IAzureServiceBusTransportSettings
+        {
+            if (lockDuration < TimeSpan.FromSeconds(5) || lockDuration > TimeSpan.FromHours(2))
+            {
+                throw new Exception("Cannot use lockDuration outside range 5sec..2hr");
+            }
+
+            self.LockDuration = lockDuration;
+
+            return self;
+        }
+
+        public static T SetMaxDeliveryCount<T>(
+            this T self,
+            int maxDeliveryCount)
+            where T : IAzureServiceBusTransportSettings
+        {
+            if (maxDeliveryCount < 1 || maxDeliveryCount > 20)
+            {
+                throw new Exception("Cannot use maxDeliveryCount outside range 1..20");
+            }
+
+            self.MaxDeliveryCount = maxDeliveryCount;
 
             return self;
         }
