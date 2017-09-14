@@ -2,12 +2,9 @@
 using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Elders.Cronus;
 using Elders.Cronus.Serializer;
 
 namespace Elders.Cronus.Transport.AzureServiceBus
@@ -15,11 +12,11 @@ namespace Elders.Cronus.Transport.AzureServiceBus
     public class AzureServiceBusEndpoint : IEndpoint, IDisposable
     {
         private readonly ISerializer _serializer;
+        private readonly string _pipelineName;
         private readonly string _connectionString;
-        private readonly int _numberOfHandlingThreads;
-        private readonly TimeSpan _lockDuration;
-        private readonly int _maxDeliveryCount;
-        private readonly ICollection<string> _watchMessageTypes;
+        public ICollection<string> WatchMessageTypes { get; private set; }
+        private readonly Dictionary<CronusMessage, BrokeredMessage> _dequeuedMessages;
+        private SubscriptionClient _client = null;
 
         public string Name { get; private set; }
 
@@ -29,190 +26,45 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             Config.IAzureServiceBusTransportSettings settings)
         {
             this._serializer = serializer;
+            this._pipelineName = endpointDefinition.PipelineName;
             this.Name = endpointDefinition.EndpointName;
-            this._watchMessageTypes = new List<string>(endpointDefinition.WatchMessageTypes);
+            this.WatchMessageTypes = endpointDefinition.WatchMessageTypes.ToList();
             this._connectionString = settings.ConnectionString;
-            this._numberOfHandlingThreads = settings.NumberOfHandlingThreads;
-            this._lockDuration = settings.LockDuration;
-            this._maxDeliveryCount = settings.MaxDeliveryCount;
+            this._dequeuedMessages = new Dictionary<CronusMessage, BrokeredMessage>();
         }
 
-        private bool _started = false;
-        private bool _stopping = false;
-        private Action<CronusMessage> _onMessageHandler;
-        private readonly ConcurrentBag<string> _pipelines = new ConcurrentBag<string>();
-        private readonly List<SubscriptionClient> _clients = new List<SubscriptionClient>();
-        private readonly ConcurrentDictionary<object, object> _processedMessages = new ConcurrentDictionary<object, object>();
 
-        public void OnMessage(Action<CronusMessage> action)
+        public CronusMessage Dequeue(TimeSpan timeout)
         {
-            if (_started)
+            if (_client == null)
             {
-                throw new Exception("Cannot assign 'OnMessageHandler' handler when endpoint was started already");
+                _client = SubscriptionClient.CreateFromConnectionString(this._connectionString, this._pipelineName, this.Name);
             }
 
-            _onMessageHandler = action;
+            var msg = _client.Receive(timeout);
+            if (msg == null)
+            {
+                return null;
+            }
+
+            var transportMessage = (CronusMessage)_serializer.DeserializeFromBytes(msg.GetBody<byte[]>());
+            this._dequeuedMessages.Add(transportMessage, msg);
+
+            return transportMessage;
         }
 
-        public void Start()
+        public void Acknowledge(CronusMessage message)
         {
-            if (_started)
+            try
             {
-                throw new Exception("Cannot start endpoint because it's already started");
-            }
-
-            if (_onMessageHandler == null)
-            {
-                throw new Exception("Cannot start endpoint because OnMessageHandler handler was not specified yet!");
-            }
-
-            _started = true;
-            _stopping = false;
-
-            foreach (var pipeline in _pipelines)
-            {
-                var client = SubscriptionClient.CreateFromConnectionString(this._connectionString, pipeline, this.Name);
-                _clients.Add(client);
-
-                var options = new OnMessageOptions()
+                BrokeredMessage msg;
+                if (_dequeuedMessages.TryGetValue(message, out msg))
                 {
-                    AutoComplete = false,
-                    MaxConcurrentCalls = this._numberOfHandlingThreads
-                };
-
-                client.OnMessage(msg =>
-                {
-                    if (client.IsClosed || _stopping)
-                    {
-                        return;
-                    }
-
-                    try
-                    {
-                        TrackMessage(msg);
-
-                        var cronusMessage = (CronusMessage)_serializer.DeserializeFromBytes(msg.GetBody<byte[]>());
-
-                        _onMessageHandler(cronusMessage);
-
-                        msg.Complete();
-                    }
-                    catch (Exception ex)
-                    {
-                        if (msg.DeliveryCount >= _maxDeliveryCount)
-                        {
-                            //if retried multiple times & throwed exception, move to dead letter with reason
-                            msg.DeadLetter("RuntimeException", $"{ex.GetFullErrorMessage()}\nStack Trace\n{ex.StackTrace}");
-                        }
-                        else
-                        {
-                            //msg.Abandon()
-                            //problem with msg.Abandon() - it will make this message available right away for reprocessing
-                            //which might run in same issue. in order to avoid it, we need to wait till message lock times out
-                        }
-                    }
-                    finally
-                    {
-                        LooseMessage(msg);
-                    }
-                }, options);
-
+                    msg.Complete();
+                }
             }
+            catch (Exception) { Dispose(); throw; }
         }
-
-        private void TrackMessage(object message)
-        {
-            _processedMessages.TryAdd(message, message);
-        }
-
-        private void LooseMessage(object message)
-        {
-            object result;
-            _processedMessages.TryRemove(message, out result);
-        }
-
-        public void Stop()
-        {
-            if (!_started || _stopping)
-            {
-                throw new Exception("Cannot stop endpoint because it was not started!");
-            }
-
-            _stopping = true;
-
-            Parallel.ForEach(_clients, x => x.Close());
-
-            var timeout = DateTime.UtcNow.AddMinutes(5);
-            while (_processedMessages.Count > 0 && DateTime.UtcNow < timeout)
-            {
-                Thread.Sleep(300);
-            }
-
-            _started = false;
-
-            _clients.Clear();
-        }
-
-        public void Bind(IPipeline pipeline)
-        {
-            _pipelines.Add(pipeline.Name);
-
-            var namespaceManager = NamespaceManager.CreateFromConnectionString(this._connectionString);
-            var subscriptionDefinition = new SubscriptionDescription(pipeline.Name, this.Name)
-            {
-                MaxDeliveryCount = _maxDeliveryCount,
-                LockDuration = _lockDuration,
-            };
-            namespaceManager.TryCreateSubscription(subscriptionDefinition);
-
-            var subscription = namespaceManager.GetSubscription(pipeline.Name, this.Name);
-            var subscriptionUpdated = false;
-
-            if (subscriptionDefinition.LockDuration != subscription.LockDuration)
-            {
-                subscription.LockDuration = subscriptionDefinition.LockDuration;
-                subscriptionUpdated = true;
-            }
-
-            if (subscriptionDefinition.MaxDeliveryCount != subscription.MaxDeliveryCount)
-            {
-                subscription.MaxDeliveryCount = subscriptionDefinition.MaxDeliveryCount;
-                subscriptionUpdated = true;
-            }
-
-            if (subscriptionUpdated)
-            {
-                namespaceManager.UpdateSubscription(subscription);
-            }
-
-            //add filters to subscribe only for needed messages
-            var rules = namespaceManager.GetRules(pipeline.Name, this.Name).ToList();
-            var rulesHash = new HashSet<string>(rules.Select(x => x.Name));
-
-            var watchMessageTypesHash = new HashSet<string>(this._watchMessageTypes);
-            var client = SubscriptionClient.CreateFromConnectionString(this._connectionString, pipeline.Name, this.Name);
-
-            foreach (var messageType in this._watchMessageTypes.Where(x => !rulesHash.Contains(x)).ToList())
-            {
-                client.AddRule(new RuleDescription()
-                {
-                    Name = messageType,
-                    Filter = new CorrelationFilter(messageType)
-                });
-            }
-
-            var rulesToRemove = rules
-                .Where(x => !watchMessageTypesHash.Contains(x.Name))
-                .ToList();
-
-            foreach (var ruleToRemove in rulesToRemove)
-            {
-                client.RemoveRule(ruleToRemove.Name);
-            }
-
-            client.Close();
-        }
-
 
         public bool Equals(IEndpoint other)
         {
@@ -221,9 +73,9 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         public void Dispose()
         {
-            if (this._started)
+            if (_client != null)
             {
-                this.Stop();
+                _client.Close();
             }
         }
     }

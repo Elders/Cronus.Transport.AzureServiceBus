@@ -24,7 +24,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             pipeline.Declare();
 
             var endpoint = new AzureServiceBusEndpoint(_serializer, definition, _settings);
-            endpoint.Bind(pipeline);
+            pipeline.Bind(endpoint);
 
             return endpoint;
         }

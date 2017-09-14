@@ -1,6 +1,7 @@
 ﻿using Elders.Cronus.Pipeline;
 using System;
-using Elders.Cronus;
+using System.Collections.Generic;
+using System.Linq;
 using Elders.Cronus.DomainModeling;
 using Elders.Cronus.Serializer;
 using Microsoft.ServiceBus;
@@ -12,6 +13,9 @@ namespace Elders.Cronus.Transport.AzureServiceBus
     {
         private readonly string _connectionString;
         private readonly ISerializer _serializer;
+        private readonly TimeSpan _lockDuration;
+        private readonly int _maxDeliveryCount;
+
         private TopicClient _client = null;
 
         public string Name { get; private set; }
@@ -24,11 +28,68 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             this._serializer = serializer;
             this.Name = name;
             this._connectionString = settings.ConnectionString;
+            this._lockDuration = settings.LockDuration;
+            this._maxDeliveryCount = settings.MaxDeliveryCount;
         }
 
         public void Bind(IEndpoint endpoint)
         {
-            (endpoint as AzureServiceBusEndpoint)?.Bind(this);
+            var azureEndpoint = (AzureServiceBusEndpoint)endpoint;
+
+            var namespaceManager = NamespaceManager.CreateFromConnectionString(this._connectionString);
+            var subscriptionDefinition = new SubscriptionDescription(this.Name, endpoint.Name)
+            {
+                MaxDeliveryCount = _maxDeliveryCount,
+                LockDuration = _lockDuration,
+            };
+            namespaceManager.TryCreateSubscription(subscriptionDefinition);
+
+            var subscription = namespaceManager.GetSubscription(this.Name, endpoint.Name);
+            var subscriptionUpdated = false;
+
+            if (subscriptionDefinition.LockDuration != subscription.LockDuration)
+            {
+                subscription.LockDuration = subscriptionDefinition.LockDuration;
+                subscriptionUpdated = true;
+            }
+
+            if (subscriptionDefinition.MaxDeliveryCount != subscription.MaxDeliveryCount)
+            {
+                subscription.MaxDeliveryCount = subscriptionDefinition.MaxDeliveryCount;
+                subscriptionUpdated = true;
+            }
+
+            if (subscriptionUpdated)
+            {
+                namespaceManager.UpdateSubscription(subscription);
+            }
+
+            //add filters to subscribe only for needed messages
+            var rules = namespaceManager.GetRules(this.Name, endpoint.Name).ToList();
+            var rulesHash = new HashSet<string>(rules.Select(x => x.Name));
+
+            var watchMessageTypesHash = new HashSet<string>(azureEndpoint.WatchMessageTypes);
+            var client = SubscriptionClient.CreateFromConnectionString(this._connectionString, this.Name, endpoint.Name);
+
+            foreach (var messageType in azureEndpoint.WatchMessageTypes.Where(x => !rulesHash.Contains(x)).ToList())
+            {
+                client.AddRule(new RuleDescription()
+                {
+                    Name = messageType,
+                    Filter = new CorrelationFilter(messageType)
+                });
+            }
+
+            var rulesToRemove = rules
+                .Where(x => !watchMessageTypesHash.Contains(x.Name))
+                .ToList();
+
+            foreach (var ruleToRemove in rulesToRemove)
+            {
+                client.RemoveRule(ruleToRemove.Name);
+            }
+
+            client.Close();
         }
 
         public void Declare()

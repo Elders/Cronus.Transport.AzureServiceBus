@@ -9,7 +9,6 @@ namespace Elders.Cronus.Transport.AzureServiceBus.Config
 {
     public interface IAzureServiceBusTransportSettings : IPipelineTransportSettings
     {
-        int NumberOfHandlingThreads { get; set; }
         string ConnectionString { get; set; }
         TimeSpan LockDuration { get; set; }
         int MaxDeliveryCount { get; set; }
@@ -23,12 +22,10 @@ namespace Elders.Cronus.Transport.AzureServiceBus.Config
             this
                 //no default configuration for service bus connection
                 .WithEndpointPerBoundedContext()
-                .SetNumberOfHandlingThreads(1)
                 .SetLockDuration(TimeSpan.FromMinutes(1))
                 .SetMaxDeliveryCount(5);
         }
 
-        int IAzureServiceBusTransportSettings.NumberOfHandlingThreads { get; set; }
         string IAzureServiceBusTransportSettings.ConnectionString { get; set; }
         TimeSpan IAzureServiceBusTransportSettings.LockDuration { get; set; }
         int IAzureServiceBusTransportSettings.MaxDeliveryCount { get; set; }
@@ -62,16 +59,6 @@ namespace Elders.Cronus.Transport.AzureServiceBus.Config
             if (configureConventions != null) configureConventions(settings);
 
             (settings as ISettingsBuilder).Build();
-
-            return self;
-        }
-
-        public static T SetNumberOfHandlingThreads<T>(
-            this T self,
-            int numberOfHandlingThreads)
-            where T : IAzureServiceBusTransportSettings
-        {
-            self.NumberOfHandlingThreads = numberOfHandlingThreads;
 
             return self;
         }
