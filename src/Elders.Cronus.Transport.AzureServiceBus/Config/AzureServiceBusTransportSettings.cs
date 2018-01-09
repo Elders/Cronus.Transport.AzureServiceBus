@@ -21,7 +21,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus.Config
         {
             this
                 //no default configuration for service bus connection
-                .WithEndpointPerBoundedContext()
+                .WithEndpointPerBoundedContextNamespace()
                 .SetLockDuration(TimeSpan.FromMinutes(1))
                 .SetMaxDeliveryCount(5);
         }
