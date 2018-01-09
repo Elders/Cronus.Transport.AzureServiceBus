@@ -75,7 +75,10 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         {
             if (_client != null)
             {
-                _client.Close();
+                if (_client.IsClosed == false)
+                    _client.Close();
+
+                _client = null;
             }
         }
     }

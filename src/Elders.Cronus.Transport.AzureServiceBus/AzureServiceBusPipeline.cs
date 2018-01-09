@@ -135,7 +135,13 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         public void Dispose()
         {
-            _client?.Close();
+            if (_client != null)
+            {
+                if (_client.IsClosed == false)
+                    _client.Close();
+
+                _client = null;
+            }
         }
     }
 }
