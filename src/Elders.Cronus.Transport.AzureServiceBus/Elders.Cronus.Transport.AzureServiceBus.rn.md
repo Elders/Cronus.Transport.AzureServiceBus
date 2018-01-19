@@ -1,4 +1,4 @@
-#### 1.1.0 - 19.01.2018
+#### 1.1.1 - 19.01.2018
 * Fixes memory leak on message processing
 
 #### 1.1.0 - 09.01.2018
