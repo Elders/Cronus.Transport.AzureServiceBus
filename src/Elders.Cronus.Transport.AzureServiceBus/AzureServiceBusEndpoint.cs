@@ -59,6 +59,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                 if (_dequeuedMessages.TryGetValue(message, out msg))
                 {
                     msg.Complete();
+                    this._dequeuedMessages.Remove(message);
                 }
             }
             catch (Exception) { Dispose(); throw; }
@@ -77,6 +78,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                     _client.Close();
 
                 _client = null;
+                this._dequeuedMessages.Clear();
             }
         }
     }
