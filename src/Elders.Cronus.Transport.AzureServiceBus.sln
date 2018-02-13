@@ -1,15 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2006
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elders.Cronus.Transport.AzureServiceBus", "Elders.Cronus.Transport.AzureServiceBus\Elders.Cronus.Transport.AzureServiceBus.csproj", "{0AD413C9-3684-4B37-BCF5-F867F45B25EA}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{3DBBCBD9-7FF5-48E5-979D-C56CEE45B355}"
-	ProjectSection(SolutionItems) = preProject
-		..\build.cmd = ..\build.cmd
-		..\RELEASE_NOTES.md = ..\RELEASE_NOTES.md
-	EndProjectSection
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Elders.Cronus.Transport.AzureServiceBus", "Elders.Cronus.Transport.AzureServiceBus\Elders.Cronus.Transport.AzureServiceBus.csproj", "{C5BB04AA-1CD2-4A5B-B91D-DB7097C3E1E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,12 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{0AD413C9-3684-4B37-BCF5-F867F45B25EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0AD413C9-3684-4B37-BCF5-F867F45B25EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0AD413C9-3684-4B37-BCF5-F867F45B25EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0AD413C9-3684-4B37-BCF5-F867F45B25EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5BB04AA-1CD2-4A5B-B91D-DB7097C3E1E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5BB04AA-1CD2-4A5B-B91D-DB7097C3E1E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5BB04AA-1CD2-4A5B-B91D-DB7097C3E1E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5BB04AA-1CD2-4A5B-B91D-DB7097C3E1E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {889A1A2B-64B2-480F-A745-C4ADD63A6BCE}
 	EndGlobalSection
 EndGlobal

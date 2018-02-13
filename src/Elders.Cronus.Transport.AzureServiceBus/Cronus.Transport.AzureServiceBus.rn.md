@@ -1,3 +1,6 @@
+#### 2.0.0 - 12.02.2018
+* Rewrite the Azure service bus with the newest client from Microsoft => https://github.com/Azure/azure-service-bus-dotnet
+
 #### 1.1.1 - 19.01.2018
 * Fixes memory leak on message processing
 
