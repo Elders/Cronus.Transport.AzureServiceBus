@@ -6,7 +6,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public static class AzureBusTransportSettingsExtensions
     {
-        public static T UseRabbitMqTransport<T>(this T self, Action<IAzureBusTransportSettings> configure = null)
+        public static T UseAzureServiceBusTransport<T>(this T self, Action<IAzureBusTransportSettings> configure = null)
             where T : ISettingsBuilder
         {
             AzureBusTransportSettings settings = new AzureBusTransportSettings(self as ISettingsBuilder);
