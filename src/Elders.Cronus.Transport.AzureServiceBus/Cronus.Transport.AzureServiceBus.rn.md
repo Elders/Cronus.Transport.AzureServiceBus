@@ -1,3 +1,6 @@
+#### 2.0.3 - 14.02.2018
+* Adds checks and retries when we manage Azure resource. In general Azure is very restrictive in terms of POST requests. We were rejected at 5-6 concurrent requests.
+
 #### 2.0.2 - 14.02.2018
 * Use MD5 for Topic and Subscription names because of reasons => https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
 

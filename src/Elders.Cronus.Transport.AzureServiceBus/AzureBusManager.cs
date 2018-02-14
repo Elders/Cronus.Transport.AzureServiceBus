@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.Azure.Management.ServiceBus;
 using Microsoft.Azure.Management.ServiceBus.Models;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
@@ -36,11 +37,17 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         public void CreateTopicIfNotExists(AzureBusSettings serviceBusSettings, string topicName)
         {
             var client = GetServiceBusManagementClient();
-            var queueParams = new SBTopic()
+            Retryable(() =>
             {
-                EnablePartitioning = false,
-            };
-            client.Topics.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, queueParams);
+                var existingTopic = client.Topics.ListByNamespace(ResourceGroup, serviceBusSettings.Namespace).ToList().Where(x => x.Name == topicName).FirstOrDefault();
+                var queueParams = new SBTopic()
+                {
+                    EnablePartitioning = false,
+                };
+
+                if (existingTopic == null)
+                    client.Topics.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, queueParams);
+            });
         }
 
         public void CreateSubscriptionIfNotExists(AzureBusSettings azureBusSettings, string topicName, string subscriptionName, List<string> messageTypes)
@@ -52,9 +59,14 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             };
 
             CreateTopicIfNotExists(azureBusSettings, topicName);
+            Retryable(() =>
+            {
+                //mngClient.Subscriptions.Delete(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName);
+                var existing = mngClient.Subscriptions.ListByTopic(ResourceGroup, azureBusSettings.Namespace, topicName).ToList().FirstOrDefault(x => x.Name == subscriptionName);
+                if (existing == null)
+                    mngClient.Subscriptions.CreateOrUpdate(ResourceGroup, azureBusSettings.Namespace, topicName, subscriptionName, subscrParams);
 
-            //mngClient.Subscriptions.Delete(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName);
-            mngClient.Subscriptions.CreateOrUpdate(ResourceGroup, azureBusSettings.Namespace, topicName, subscriptionName, subscrParams);
+            });
             CreateOrUpdateRulesForSubscription(azureBusSettings, topicName, subscriptionName, messageTypes);
         }
 
@@ -74,13 +86,25 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                         CorrelationId = msgType
                     };
                     var rule = new Rule(name: ruleName, filterType: FilterType.CorrelationFilter, correlationFilter: filter);
-                    mngClient.Rules.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, ruleName, rule);
+                    Retryable(() =>
+                    {
+                        var existing = mngClient.Rules.ListBySubscriptions(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName).ToList().Where(x => x.Name == ruleName).FirstOrDefault();
+                        if (existing == null)
+                            mngClient.Rules.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, ruleName, rule);
+                    });
                 }
             }
             foreach (var rule in existingRules)
             {
                 if (newRules.Contains(rule.Name) == false)
-                    mngClient.Rules.Delete(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, rule.Name);
+                {
+                    Retryable(() =>
+                    {
+                        var existing = mngClient.Rules.ListBySubscriptions(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName).ToList().Where(x => x.Name == rule.Name).FirstOrDefault();
+                        if (existing != null)
+                            mngClient.Rules.Delete(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, rule.Name);
+                    });
+                }
             }
         }
 
@@ -102,8 +126,35 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                 var creds = new TokenCredentials(tokenResult.AccessToken);
                 managementClient = new ServiceBusManagementClient(creds);
                 managementClient.SubscriptionId = SubscriptionId;
+                managementClient.SetRetryPolicy(new Microsoft.Rest.TransientFaultHandling.RetryPolicy(new Eveything(), 10, TimeSpan.FromMilliseconds(100)));
             }
             return managementClient;
+        }
+
+        void Retryable(System.Action action, int retries = 5, int intervalMiliseconds = 1000)
+        {
+            for (int i = 0; i < retries; i++)
+            {
+                try
+                {
+                    action();
+                    return;
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(intervalMiliseconds);
+                }
+            }
+
+            throw new Exception("We are really SORRY! We did eveything possible to create an Azure Service bus resource but we were rejected with 429");
+        }
+
+        public class Eveything : Microsoft.Rest.TransientFaultHandling.ITransientErrorDetectionStrategy
+        {
+            public bool IsTransient(Exception ex)
+            {
+                return true;
+            }
         }
     }
 }
