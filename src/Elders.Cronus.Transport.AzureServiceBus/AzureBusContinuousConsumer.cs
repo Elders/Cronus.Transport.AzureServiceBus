@@ -4,6 +4,7 @@ using System.Linq;
 using Elders.Cronus.MessageProcessing;
 using Elders.Cronus.Pipeline;
 using Elders.Cronus.Serializer;
+using Elders.Cronus.Transport.AzureServiceBus.Logging;
 using Microsoft.Azure.ServiceBus;
 using Microsoft.Azure.ServiceBus.Core;
 
@@ -11,6 +12,8 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public class AzureBusContinuousConsumer : ContinuousConsumer
     {
+        static readonly ILog log = LogProvider.GetLogger(typeof(AzureBusContinuousConsumer));
+
         private readonly ISerializer serializer;
 
         private Dictionary<Guid, Message> deliveryTags;
@@ -50,7 +53,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             {
                 Message busMessage;
                 if (deliveryTags.TryGetValue(message.Id, out busMessage))
-                    subscriptionReceiver.CompleteAsync(busMessage.SystemProperties.LockToken).GetAwaiter().GetResult();
+                    subscriptionReceiver.CompleteAsync(busMessage.SystemProperties.LockToken).ConfigureAwait(false).GetAwaiter().GetResult();
             }
             finally
             {
@@ -63,7 +66,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         protected override void WorkStop()
         {
-            subscriptionReceiver.CloseAsync().GetAwaiter().GetResult();
+            subscriptionReceiver.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
             deliveryTags?.Clear();
             deliveryTags = null;
         }

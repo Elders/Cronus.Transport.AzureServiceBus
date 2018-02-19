@@ -24,29 +24,29 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             if (topicClient == null)
             {
                 var topicName = AzureBusNamer.GetTopicName(message.Payload.GetType());
-                serviceBusManager.CreateTopicIfNotExists(serviceBusSettings, topicName);
+                //serviceBusManager.CreateTopicIfNotExists(serviceBusSettings, topicName);
                 topicClient = new TopicClient(serviceBusSettings.ConnectionString, topicName);
             }
 
             byte[] body = this.serializer.SerializeToBytes(message);
             var toSend = new Message(body);
-            var messageTypeId = message.Payload.GetType().GetContractId();
+            var messageTypeId = message.Payload.GetType().GetContractId().ToLower();
             toSend.CorrelationId = messageTypeId;
             var publishDate = message.GetPublishDate();
             if ((publishDate.UtcDateTime - DateTime.UtcNow).TotalMilliseconds < 1000)
             {
-                topicClient.SendAsync(toSend).GetAwaiter().GetResult();
+                topicClient.SendAsync(toSend).ConfigureAwait(false).GetAwaiter().GetResult();
             }
             else
             {
-                topicClient.ScheduleMessageAsync(toSend, publishDate).GetAwaiter().GetResult();
+                topicClient.ScheduleMessageAsync(toSend, publishDate).ConfigureAwait(false).GetAwaiter().GetResult();
             }
             return true;
         }
 
         public void Dispose()
         {
-            topicClient.CloseAsync().GetAwaiter().GetResult();
+            topicClient.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }

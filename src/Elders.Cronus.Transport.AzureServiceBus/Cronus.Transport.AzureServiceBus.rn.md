@@ -1,3 +1,6 @@
+#### 2.0.4 - 19.02.2018
+* Adds log messages for better tracing
+
 #### 2.0.3 - 14.02.2018
 * Adds checks and retries when we manage Azure resource. In general Azure is very restrictive in terms of POST requests. We were rejected at 5-6 concurrent requests.
 

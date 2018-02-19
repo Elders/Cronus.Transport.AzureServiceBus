@@ -1,23 +1,30 @@
 ﻿using System;
 using System.Security.Cryptography;
 using System.Text;
+using Elders.Cronus.Transport.AzureServiceBus.Logging;
 
 namespace Elders.Cronus.Transport.AzureServiceBus
 {
     public static class AzureBusNamer
     {
+        static readonly ILog log = LogProvider.GetLogger(typeof(AzureBusNamer));
+
         public static string GetTopicName(Type messageType)
         {
-            var realName = GetBoundedContext(messageType).ProductNamespace + ".Messages";
-            var shortName = CalculateMD5Hash(realName); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
+            var realName = (GetBoundedContext(messageType).ProductNamespace + ".Messages").ToLower();
+            var shortName = CalculateMD5Hash(realName).ToLower(); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
+
+            log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
 
             return shortName;
         }
 
         public static string GetSubscriptionName(Type messageType, string name)
         {
-            var realName = GetBoundedContext(messageType).ProductNamespace + "." + name;
-            var shortName = CalculateMD5Hash(realName); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
+            var realName = (GetBoundedContext(messageType).ProductNamespace + "." + name).ToLower();
+            var shortName = CalculateMD5Hash(realName).ToLower(); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
+
+            log.Debug(() => $"Azure bus map for subscription: {realName} : {shortName}");
 
             return shortName;
         }
@@ -45,7 +52,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                 {
                     sb.Append(hash[i].ToString("X2"));
                 }
-                return sb.ToString();
+                return sb.ToString().ToLower();
             }
         }
     }

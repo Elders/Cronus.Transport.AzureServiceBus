@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using Elders.Cronus.Transport.AzureServiceBus.Logging;
 using Microsoft.Azure.Management.ServiceBus;
 using Microsoft.Azure.Management.ServiceBus.Models;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
@@ -9,9 +12,56 @@ using Microsoft.Rest;
 
 namespace Elders.Cronus.Transport.AzureServiceBus
 {
+    public static class AzureBusExtensions
+    {
+        public static List<SBTopic> Topics { get; set; }
+        public static ConcurrentDictionary<string, List<SBSubscription>> Subscriptions { get; set; }
+        public static ConcurrentDictionary<string, List<Rule>> Rules { get; set; }
+
+        public static List<SBTopic> GetTopics(this ServiceBusManagementClient client, string azureBusResourceGroup, string azureBusNamespace)
+        {
+            if (ReferenceEquals(null, Topics))
+                Topics = client.Topics.ListByNamespace(azureBusResourceGroup, azureBusNamespace).ToList();
+
+            return Topics;
+        }
+
+        public static List<SBSubscription> GetSubscriptions(this ServiceBusManagementClient client, string azureBusResourceGroup, string azureBusNamespace, string topicName)
+        {
+            if (Subscriptions == null) Subscriptions = new ConcurrentDictionary<string, List<SBSubscription>>();
+
+            List<SBSubscription> subscr = new List<SBSubscription>();
+            if (Subscriptions.TryGetValue(topicName, out subscr) == false)
+            {
+                var fromAzure = client.Subscriptions.ListByTopic(azureBusResourceGroup, azureBusNamespace, topicName).ToList();
+                subscr = fromAzure;
+                Subscriptions.AddOrUpdate(topicName, fromAzure, (key, existing) => { existing.AddRange(fromAzure); return existing; });
+            }
+
+            return subscr;
+        }
+
+        public static List<Rule> GetRules(this ServiceBusManagementClient client, string azureBusResourceGroup, string azureBusNamespace, string topicName, string subscriptionName)
+        {
+            if (Rules == null) Rules = new ConcurrentDictionary<string, List<Rule>>();
+
+            List<Rule> rules = new List<Rule>();
+            if (Rules.TryGetValue(subscriptionName, out rules) == false)
+            {
+                var fromAzure = client.Rules.ListBySubscriptions(azureBusResourceGroup, azureBusNamespace, topicName, subscriptionName).ToList();
+                rules = fromAzure;
+                Rules.AddOrUpdate(subscriptionName, fromAzure, (key, existing) => { existing.AddRange(fromAzure); return existing; });
+            }
+
+            return rules;
+        }
+    }
+
     public class AzureBusManager
     {
-        AuthenticationResult tokenResult;
+        static readonly ILog log = LogProvider.GetLogger(typeof(AzureBusManager));
+
+        static AuthenticationResult tokenResult;
         ServiceBusManagementClient managementClient;
 
         public AzureBusManager()
@@ -39,20 +89,25 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             var client = GetServiceBusManagementClient();
             Retryable(() =>
             {
-                var existingTopic = client.Topics.ListByNamespace(ResourceGroup, serviceBusSettings.Namespace).ToList().Where(x => x.Name == topicName).FirstOrDefault();
+                var existingTopic = client.GetTopics(ResourceGroup, serviceBusSettings.Namespace).Where(x => x.Name.Equals(topicName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
                 var queueParams = new SBTopic()
                 {
                     EnablePartitioning = false,
                 };
 
                 if (existingTopic == null)
-                    client.Topics.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, queueParams);
+                {
+                    var topic = client.Topics.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, queueParams);
+                    AzureBusExtensions.Topics.Add(topic);
+                }
             });
+
+            log.Info(() => $"Azure bus topic {topicName}` is ready");
         }
 
         public void CreateSubscriptionIfNotExists(AzureBusSettings azureBusSettings, string topicName, string subscriptionName, List<string> messageTypes)
         {
-            var mngClient = GetServiceBusManagementClient();
+            var client = GetServiceBusManagementClient();
             var subscrParams = new SBSubscription()
             {
                 AutoDeleteOnIdle = null
@@ -62,55 +117,77 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             Retryable(() =>
             {
                 //mngClient.Subscriptions.Delete(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName);
-                var existing = mngClient.Subscriptions.ListByTopic(ResourceGroup, azureBusSettings.Namespace, topicName).ToList().FirstOrDefault(x => x.Name == subscriptionName);
+                var existing = client.GetSubscriptions(ResourceGroup, azureBusSettings.Namespace, topicName).Where(x => x.Name.Equals(subscriptionName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
                 if (existing == null)
-                    mngClient.Subscriptions.CreateOrUpdate(ResourceGroup, azureBusSettings.Namespace, topicName, subscriptionName, subscrParams);
+                {
+                    var subscription = client.Subscriptions.CreateOrUpdate(ResourceGroup, azureBusSettings.Namespace, topicName, subscriptionName, subscrParams);
+                    if (AzureBusExtensions.Subscriptions.TryGetValue(topicName, out List<SBSubscription> subscriptions))
+                        subscriptions.Add(subscription);
+                }
 
             });
             CreateOrUpdateRulesForSubscription(azureBusSettings, topicName, subscriptionName, messageTypes);
+
+            log.Info(() => $"Azure bus subscribtion {subscriptionName} has subscribed to topic {topicName}");
         }
 
         private void CreateOrUpdateRulesForSubscription(AzureBusSettings serviceBusSettings, string topicName, string subscriptionName, List<string> messageTypes)
         {
-            var mngClient = GetServiceBusManagementClient();
+            var client = GetServiceBusManagementClient();
             List<string> newRules = new List<string>();
-            var existingRules = mngClient.Rules.ListBySubscriptions(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName).ToList();
+            var existingRules = client.GetRules(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName).ToList();
             foreach (var msgType in messageTypes)
             {
-                var ruleName = $@"Type-{msgType}";
+                var ruleName = $@"type-{msgType}".ToLower();
                 newRules.Add(ruleName);
-                if (existingRules.Any(x => x.Name == ruleName) == false)
+                if (existingRules.Any(x => x.Name.Equals(ruleName, StringComparison.OrdinalIgnoreCase)) == false)
                 {
                     var filter = new Microsoft.Azure.Management.ServiceBus.Models.CorrelationFilter()
                     {
-                        CorrelationId = msgType
+                        CorrelationId = msgType.ToLower()
                     };
                     var rule = new Rule(name: ruleName, filterType: FilterType.CorrelationFilter, correlationFilter: filter);
                     Retryable(() =>
                     {
-                        var existing = mngClient.Rules.ListBySubscriptions(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName).ToList().Where(x => x.Name == ruleName).FirstOrDefault();
-                        if (existing == null)
-                            mngClient.Rules.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, ruleName, rule);
+                        var newRule = client.Rules.CreateOrUpdate(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, ruleName, rule);
+                        if (AzureBusExtensions.Rules.TryGetValue(subscriptionName, out List<Rule> rules))
+                            rules.Add(newRule);
                     });
                 }
             }
             foreach (var rule in existingRules)
             {
-                if (newRules.Contains(rule.Name) == false)
+                if (newRules.Contains(rule.Name.ToLower()) == false)
                 {
                     Retryable(() =>
                     {
-                        var existing = mngClient.Rules.ListBySubscriptions(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName).ToList().Where(x => x.Name == rule.Name).FirstOrDefault();
-                        if (existing != null)
-                            mngClient.Rules.Delete(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, rule.Name);
+                        client.Rules.Delete(ResourceGroup, serviceBusSettings.Namespace, topicName, subscriptionName, rule.Name);
+                        if (AzureBusExtensions.Rules.TryGetValue(subscriptionName, out List<Rule> rules))
+                            rules.Remove(rule);
+
                     });
                 }
             }
+
+            Func<List<Rule>, string> rulesAsString = (rules) =>
+            {
+                StringBuilder flat = new StringBuilder();
+                rules.ForEach(r => flat.AppendLine($"{r.Name} {r.CorrelationFilter.CorrelationId} {r.FilterType}"));
+
+                return flat.ToString();
+            };
+
+            log.Debug(() =>
+            {
+                if (AzureBusExtensions.Rules.TryGetValue(subscriptionName, out List<Rule> rulesList))
+                    return $"Subscription rule list. Topic:{topicName} Subscription:{subscriptionName}{Environment.NewLine}{rulesAsString(rulesList)}";
+                return $"Unable to find rules for subscription {subscriptionName}";
+            });
         }
 
         ServiceBusManagementClient GetServiceBusManagementClient()
         {
-            if (tokenResult == null || DateTimeOffset.UtcNow.AddMinutes(10) > tokenResult.ExpiresOn)
+            if (managementClient == null || tokenResult == null || DateTimeOffset.UtcNow.AddMinutes(10) > tokenResult.ExpiresOn)
             {
                 var context = new AuthenticationContext($"{ActiveDirectoryAuthority}{TenantId}");
 
@@ -140,8 +217,9 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                     action();
                     return;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    log.ErrorException(ex.Message, ex);
                     Thread.Sleep(intervalMiliseconds);
                 }
             }
