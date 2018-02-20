@@ -1,3 +1,6 @@
+#### 2.0.5 - 20.02.2018
+* Targets netstandard2.0;net461
+
 #### 2.0.4 - 19.02.2018
 * Adds log messages for better tracing
 
