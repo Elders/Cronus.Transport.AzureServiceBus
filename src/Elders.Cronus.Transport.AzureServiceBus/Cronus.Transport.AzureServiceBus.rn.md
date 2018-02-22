@@ -1,3 +1,6 @@
+#### 2.0.6 - 22.02.2018
+* Reworks how topics/subscriptions are created
+
 #### 2.0.5 - 20.02.2018
 * Targets netstandard2.0;net461
 

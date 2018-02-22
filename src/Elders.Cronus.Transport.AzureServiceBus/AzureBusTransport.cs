@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Elders.Cronus.MessageProcessing;
 using Elders.Cronus.Pipeline;
 using Elders.Cronus.Serializer;
@@ -17,9 +18,11 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         }
         public IEnumerable<IConsumerFactory> GetAvailableConsumers(ISerializer serializer, SubscriptionMiddleware subscriptions, string consumerName)
         {
-            foreach (var subscriber in subscriptions.Subscribers)
+            ///foreach (var subscriber in subscriptions.Subscribers)
+            var messageType = subscriptions.Subscribers.FirstOrDefault().GetInvolvedMessageTypes().FirstOrDefault();
+            var name = AzureBusNamer.GetBoundedContext(messageType).ProductNamespace + "." + consumerName;
             {
-                yield return new AzureBusConsumerFacotry(serviceBusSettings, clientSettings, subscriber, serializer, subscriptions);
+                yield return new AzureBusConsumerFacotry(serviceBusSettings, clientSettings, consumerName, serializer, subscriptions);
             }
         }
 

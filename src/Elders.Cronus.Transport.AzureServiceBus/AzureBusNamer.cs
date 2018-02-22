@@ -21,15 +21,16 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         public static string GetSubscriptionName(Type messageType, string name)
         {
-            var realName = (GetBoundedContext(messageType).ProductNamespace + "." + name).ToLower();
-            var shortName = CalculateMD5Hash(realName).ToLower(); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
+            var bcName = GetBoundedContext(messageType).ProductNamespace;
+            var realName = bcName + "." + name.ToLower();
+            var shortName = CalculateMD5Hash(bcName) + "." + name.ToLower(); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
 
             log.Debug(() => $"Azure bus map for subscription: {realName} : {shortName}");
 
             return shortName;
         }
 
-        static BoundedContextAttribute GetBoundedContext(Type messageType)
+        public static BoundedContextAttribute GetBoundedContext(Type messageType)
         {
             var boundedContext = messageType.GetBoundedContext();
 
@@ -52,7 +53,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                 {
                     sb.Append(hash[i].ToString("X2"));
                 }
-                return sb.ToString().ToLower();
+                return sb.ToString().ToLower().Substring(0, 8);
             }
         }
     }
