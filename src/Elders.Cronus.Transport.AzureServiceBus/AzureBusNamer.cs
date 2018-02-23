@@ -11,21 +11,41 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         public static string GetTopicName(Type messageType)
         {
-            var realName = (GetBoundedContext(messageType).ProductNamespace + ".Messages").ToLower();
-            var shortName = CalculateMD5Hash(realName).ToLower(); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
-
-            log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
-
-            return shortName;
+            if (typeof(ICommand).IsAssignableFrom(messageType))
+                return GetCommandsPipelineName(messageType);
+            else if (typeof(IEvent).IsAssignableFrom(messageType))
+                return GetEventsPipelineName(messageType);
+            else if (typeof(IScheduledMessage).IsAssignableFrom(messageType))
+                return GetEventsPipelineName(messageType);
+            else
+                throw new Exception(string.Format("The message type '{0}' is not eligible. Please use ICommand or IEvent", messageType));
         }
 
         public static string GetSubscriptionName(Type messageType, string name)
         {
             var bcName = GetBoundedContext(messageType).ProductNamespace;
             var realName = bcName + "." + name.ToLower();
-            var shortName = CalculateMD5Hash(bcName) + "." + name.ToLower(); // https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
+            var shortName = CalculateMD5Hash(bcName) + "." + name.ToLower();
 
             log.Debug(() => $"Azure bus map for subscription: {realName} : {shortName}");
+
+            return shortName;
+        }
+
+        static string GetCommandsPipelineName(Type messageType)
+        {
+            var realName = (GetBoundedContext(messageType).ProductNamespace + ".commands").ToLower();
+            var shortName = CalculateMD5Hash(realName).ToLower() + ".commands";
+            log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
+
+            return shortName;
+        }
+
+        static string GetEventsPipelineName(Type messageType)
+        {
+            var realName = (GetBoundedContext(messageType).ProductNamespace + ".events").ToLower();
+            var shortName = CalculateMD5Hash(realName).ToLower() + ".events";
+            log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
 
             return shortName;
         }
@@ -39,6 +59,11 @@ namespace Elders.Cronus.Transport.AzureServiceBus
             return boundedContext;
         }
 
+        /// <summary>
+        /// https://feedback.azure.com/forums/216926-service-bus/suggestions/18552391-increase-the-maximum-length-of-the-name-of-a-topic
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         static string CalculateMD5Hash(string input)
         {
             using (MD5 md5 = System.Security.Cryptography.MD5.Create())

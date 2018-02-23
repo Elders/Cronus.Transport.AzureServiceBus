@@ -1,3 +1,7 @@
+#### 2.0.7 - 22.02.2018
+* Adds more context to the Topic name
+* Updates packages
+
 #### 2.0.6 - 22.02.2018
 * Reworks how topics/subscriptions are created
 
