@@ -34,8 +34,9 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         static string GetCommandsPipelineName(Type messageType)
         {
+            var bcName = GetBoundedContext(messageType).ProductNamespace;
             var realName = (GetBoundedContext(messageType).ProductNamespace + ".commands").ToLower();
-            var shortName = CalculateMD5Hash(realName).ToLower() + ".commands";
+            var shortName = CalculateMD5Hash(bcName).ToLower() + ".commands";
             log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
 
             return shortName;
@@ -43,8 +44,9 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         static string GetEventsPipelineName(Type messageType)
         {
+            var bcName = GetBoundedContext(messageType).ProductNamespace;
             var realName = (GetBoundedContext(messageType).ProductNamespace + ".events").ToLower();
-            var shortName = CalculateMD5Hash(realName).ToLower() + ".events";
+            var shortName = CalculateMD5Hash(bcName).ToLower() + ".events";
             log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
 
             return shortName;
