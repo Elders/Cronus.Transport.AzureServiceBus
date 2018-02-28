@@ -1,3 +1,6 @@
+#### 2.0.9 - 28.02.2018
+* Updates packages
+
 #### 2.0.8 - 23.02.2018
 * Fixes Topic names' hash
 

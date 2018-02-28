@@ -19,19 +19,8 @@
         <DefineConstants>TRACE;DEBUG;NETSTANDARD2_0;LIBLOG_PORTABLE</DefineConstants>
     </PropertyGroup>
     <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-        <PackageReference Include="Cronus.DomainModeling" Version="4.0.2" />
         <PackageReference Include="Microsoft.CSharp" Version="4.4.1" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.0.0" />
-        <PackageReference Include="Multithreading.Scheduler" Version="2.0.1" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Cronus" Version="4.0.7" />
-        <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="1.0.3" />
-        <PackageReference Include="Microsoft.Azure.ServiceBus" Version="2.0.0" />
-        <PackageReference Include="Microsoft.CSharp" Version="4.4.1" />
-        <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure" Version="3.3.10" />
-        <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure.Authentication" Version="2.3.2" />
     </ItemGroup>
 
     <!--netstandard2.0 == false-->
@@ -45,7 +34,17 @@
         <Reference Include="System.Runtime.Caching" />
         <Reference Include="Microsoft.CSharp" />
         <Reference Include="System.Net.Http" />
-
-        <PackageReference Include="Cronus" Version="4.0.4" />
     </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Multithreading.Scheduler" Version="2.0.1" />
+        <PackageReference Include="Cronus.DomainModeling" Version="4.0.4" />
+        <PackageReference Include="Cronus" Version="4.0.10" />
+        <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="1.0.3" />
+        <PackageReference Include="Microsoft.Azure.ServiceBus" Version="2.0.0" />
+        <PackageReference Include="Microsoft.CSharp" Version="4.4.1" />
+        <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure" Version="3.3.10" />
+        <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure.Authentication" Version="2.3.2" />
+    </ItemGroup>
+
 </Project>
