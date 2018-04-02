@@ -46,7 +46,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         public void Dispose()
         {
             if (ReferenceEquals(null, topicClient) == false || topicClient.IsClosedOrClosing == false)
-                topicClient.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                topicClient?.CloseAsync()?.ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }

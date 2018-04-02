@@ -1,3 +1,6 @@
+#### 2.0.11 - 02.04.2018
+* Adds checks for proper dispose
+
 #### 2.0.10 - 02.04.2018
 * Fixes bus client init
 
