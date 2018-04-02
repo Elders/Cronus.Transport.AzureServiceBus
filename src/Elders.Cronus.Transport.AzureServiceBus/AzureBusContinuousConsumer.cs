@@ -26,12 +26,14 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         {
             this.deliveryTags = new Dictionary<Guid, Message>();
             this.serializer = serializer;
+
             var messageTypes = middleware.Subscribers.SelectMany(x => x.GetInvolvedMessageTypes()).Distinct().ToList();
-            var topicName = AzureBusNamer.GetTopicName(messageTypes.FirstOrDefault());
+            var topic = messageTypes.GroupBy(x => AzureBusNamer.GetTopicName(x)).Distinct().Single();
+            var contracts = topic.Distinct().Select(x => x.GetContractId()).ToList();
+            azureBusManager.CreateSubscriptionIfNotExists(azureBusSettings, topic.Key, consumerName, contracts);
             var subscriptionName = AzureBusNamer.GetSubscriptionName(messageTypes.FirstOrDefault(), consumerName);
-            azureBusManager.CreateSubscriptionIfNotExists(azureBusSettings, topicName, subscriptionName, messageTypes.Select(x => x.GetContractId()).ToList());
-            correlationFilterSubscriptionClient = new SubscriptionClient(azureBusSettings.ConnectionString, topicName, subscriptionName);
-            string subscriptionPath = EntityNameHelper.FormatSubscriptionPath(topicName, subscriptionName);
+            correlationFilterSubscriptionClient = new SubscriptionClient(azureBusSettings.ConnectionString, topic.Key, subscriptionName);
+            string subscriptionPath = EntityNameHelper.FormatSubscriptionPath(topic.Key, consumerName);
             subscriptionReceiver = new MessageReceiver(azureBusSettings.ConnectionString, subscriptionPath, ReceiveMode.PeekLock);
         }
 

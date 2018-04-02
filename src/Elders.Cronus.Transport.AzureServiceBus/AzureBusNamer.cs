@@ -12,11 +12,11 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         public static string GetTopicName(Type messageType)
         {
             if (typeof(ICommand).IsAssignableFrom(messageType))
-                return GetCommandsPipelineName(messageType);
+                return GetCommandsPipelineName();
             else if (typeof(IEvent).IsAssignableFrom(messageType))
-                return GetEventsPipelineName(messageType);
+                return GetEventsPipelineName();
             else if (typeof(IScheduledMessage).IsAssignableFrom(messageType))
-                return GetEventsPipelineName(messageType);
+                return GetEventsPipelineName();
             else
                 throw new Exception(string.Format("The message type '{0}' is not eligible. Please use ICommand or IEvent", messageType));
         }
@@ -24,10 +24,15 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         public static string GetSubscriptionName(Type messageType, string name)
         {
             var bcName = GetBoundedContext(messageType).ProductNamespace;
-            var realName = bcName + "." + name.ToLower();
-            var shortName = CalculateMD5Hash(bcName) + "." + name.ToLower();
+            return BuildAzureBusResource(bcName, name);
+        }
 
-            log.Debug(() => $"Azure bus map for subscription: {realName} : {shortName}");
+        public static string BuildAzureBusResource(string boundedContext, string name)
+        {
+            var realName = (boundedContext + "." + name).ToLower();
+            var shortName = CalculateMD5Hash(boundedContext) + "." + name.ToLower();
+
+            log.Debug(() => $"Azure bus resource: {realName} : {shortName}");
 
             return shortName;
         }
@@ -35,21 +40,23 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         static string GetCommandsPipelineName(Type messageType)
         {
             var bcName = GetBoundedContext(messageType).ProductNamespace;
-            var realName = (GetBoundedContext(messageType).ProductNamespace + ".commands").ToLower();
-            var shortName = CalculateMD5Hash(bcName).ToLower() + ".commands";
-            log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
-
-            return shortName;
+            return BuildAzureBusResource(bcName, "commands");
         }
 
         static string GetEventsPipelineName(Type messageType)
         {
             var bcName = GetBoundedContext(messageType).ProductNamespace;
-            var realName = (GetBoundedContext(messageType).ProductNamespace + ".events").ToLower();
-            var shortName = CalculateMD5Hash(bcName).ToLower() + ".events";
-            log.Debug(() => $"Azure bus map for topic: {realName} : {shortName}");
+            return BuildAzureBusResource(bcName, "events");
+        }
 
-            return shortName;
+        static string GetEventsPipelineName()
+        {
+            return BuildAzureBusResource("global", "events");
+        }
+
+        static string GetCommandsPipelineName()
+        {
+            return BuildAzureBusResource("global", "commands");
         }
 
         public static BoundedContextAttribute GetBoundedContext(Type messageType)

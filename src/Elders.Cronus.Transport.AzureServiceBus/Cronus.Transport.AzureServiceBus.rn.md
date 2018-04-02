@@ -1,3 +1,9 @@
+#### 5.0.0-beta0001 - 02.04.2018
+* Uses global topics for commands and events
+
+#### 2.0.11 - 02.04.2018
+* Adds checks for proper dispose
+
 #### 2.0.11 - 02.04.2018
 * Adds checks for proper dispose
 
