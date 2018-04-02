@@ -1,3 +1,6 @@
+#### 2.0.10 - 02.04.2018
+* Fixes bus client init
+
 #### 2.0.9 - 28.02.2018
 * Updates packages
 

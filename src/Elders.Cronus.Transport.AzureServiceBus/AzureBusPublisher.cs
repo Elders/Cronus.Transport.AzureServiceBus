@@ -21,10 +21,9 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         protected override bool PublishInternal(CronusMessage message)
         {
-            if (topicClient == null)
+            if (ReferenceEquals(null, topicClient) || topicClient.IsClosedOrClosing)
             {
                 var topicName = AzureBusNamer.GetTopicName(message.Payload.GetType());
-                //serviceBusManager.CreateTopicIfNotExists(serviceBusSettings, topicName);
                 topicClient = new TopicClient(serviceBusSettings.ConnectionString, topicName);
             }
 
@@ -46,7 +45,8 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         public void Dispose()
         {
-            topicClient.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            if (ReferenceEquals(null, topicClient) == false || topicClient.IsClosedOrClosing == false)
+                topicClient.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }

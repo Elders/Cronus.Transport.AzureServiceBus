@@ -20,7 +20,6 @@
     </PropertyGroup>
     <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
         <PackageReference Include="Microsoft.CSharp" Version="4.4.1" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.0.0" />
     </ItemGroup>
 
     <!--netstandard2.0 == false-->
@@ -38,12 +37,12 @@
 
     <ItemGroup>
         <PackageReference Include="Multithreading.Scheduler" Version="2.0.1" />
-        <PackageReference Include="Cronus.DomainModeling" Version="4.0.4" />
-        <PackageReference Include="Cronus" Version="4.0.10" />
-        <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="1.0.3" />
+        <PackageReference Include="Cronus.DomainModeling" Version="4.0.6" />
+        <PackageReference Include="Cronus" Version="4.1.4" />
+        <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="1.1.0" />
         <PackageReference Include="Microsoft.Azure.ServiceBus" Version="2.0.0" />
         <PackageReference Include="Microsoft.CSharp" Version="4.4.1" />
-        <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure" Version="3.3.10" />
+        <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure" Version="3.3.12" />
         <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure.Authentication" Version="2.3.2" />
     </ItemGroup>
 
