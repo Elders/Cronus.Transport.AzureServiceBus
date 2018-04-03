@@ -1,3 +1,6 @@
+#### 5.0.0-beta0002 - 03.04.2018
+* Adds try/catch arround Azure ServiceBus communication
+
 #### 5.0.0-beta0001 - 02.04.2018
 * Uses global topics for commands and events
 

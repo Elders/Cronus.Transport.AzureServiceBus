@@ -19,6 +19,7 @@ namespace Elders.Cronus.Transport.AzureServiceBus
         private Dictionary<Guid, Message> deliveryTags;
 
         private SubscriptionClient correlationFilterSubscriptionClient;
+
         private IMessageReceiver subscriptionReceiver;
 
         public AzureBusContinuousConsumer(AzureBusSettings azureBusSettings, AzureBusManager azureBusManager, string consumerName, ISerializer serializer, SubscriptionMiddleware middleware)
@@ -39,15 +40,23 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         protected override CronusMessage GetMessage()
         {
-            var dequeuedMessage = subscriptionReceiver.ReceiveAsync(TimeSpan.FromSeconds(30)).Result;
-
-            if (ReferenceEquals(null, dequeuedMessage) == false)
+            try
             {
-                var cronusMessage = (CronusMessage)serializer.DeserializeFromBytes(dequeuedMessage.Body);
-                deliveryTags[cronusMessage.Id] = dequeuedMessage;
-                return cronusMessage;
+                var dequeuedMessage = subscriptionReceiver.ReceiveAsync(TimeSpan.FromSeconds(30)).Result;
+
+                if (ReferenceEquals(null, dequeuedMessage) == false)
+                {
+                    var cronusMessage = (CronusMessage)serializer.DeserializeFromBytes(dequeuedMessage.Body);
+                    deliveryTags[cronusMessage.Id] = dequeuedMessage;
+                    return cronusMessage;
+                }
+                return null;
             }
-            return null;
+            catch (Exception ex)
+            {
+                log.ErrorException("Failed to get message from Azure ServiceBus", ex);
+                return null;
+            }
         }
 
         protected override void MessageConsumed(CronusMessage message)
@@ -57,6 +66,10 @@ namespace Elders.Cronus.Transport.AzureServiceBus
                 Message busMessage;
                 if (deliveryTags.TryGetValue(message.Id, out busMessage))
                     subscriptionReceiver.CompleteAsync(busMessage.SystemProperties.LockToken).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                log.ErrorException("Failed to acknoledge/consume message from Azure ServiceBus", ex);
             }
             finally
             {
@@ -69,7 +82,12 @@ namespace Elders.Cronus.Transport.AzureServiceBus
 
         protected override void WorkStop()
         {
-            subscriptionReceiver.CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            subscriptionReceiver?.CloseAsync()?.ConfigureAwait(false).GetAwaiter().GetResult();
+            subscriptionReceiver = null;
+
+            correlationFilterSubscriptionClient?.CloseAsync()?.ConfigureAwait(false).GetAwaiter().GetResult();
+            correlationFilterSubscriptionClient = null;
+
             deliveryTags?.Clear();
             deliveryTags = null;
         }
